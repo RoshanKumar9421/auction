@@ -1,5 +1,6 @@
 import pandas as pd
-import json, random ,requests
+import json, random, requests, io
+import pdfplumber
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse, HttpResponse, HttpResponseBadRequest
 from django.views.decorators.csrf import csrf_exempt
@@ -74,6 +75,25 @@ def setup_view(request):
                         f = request.FILES['file_upload']
                         if f.name.endswith('.csv'):
                             df = pd.read_csv(f)
+                        elif f.name.endswith('.pdf'):
+                            # Extract tables from PDF
+                            pdf_bytes = f.read()
+                            with pdfplumber.open(io.BytesIO(pdf_bytes)) as pdf:
+                                headers = None
+                                all_rows = []
+                                for page in pdf.pages:
+                                    table = page.extract_table()
+                                    if table and len(table) > 0:
+                                        if headers is None:
+                                            headers = table[0]
+                                            all_rows.extend(table[1:])
+                                        else:
+                                            all_rows.extend(table)
+                                if headers and all_rows:
+                                    df = pd.DataFrame(all_rows, columns=headers)
+                                else:
+                                    messages.error(request, "Could not extract any table from the PDF.")
+                                    return redirect('setup')
                         else:
                             df = pd.read_excel(f)
                         

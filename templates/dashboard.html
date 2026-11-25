@@ -1,1438 +1,576 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Pro Auction Live</title>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Live Auction</title>
+<script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;800;900&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0c1f19;--panel:#143127;--panel2:#1b3f33;--line:rgba(238,243,234,.13);
+  --text:#eef3ea;--mute:#9bb3a6;--accent:#ffc93c;--ink:#1b1500;--go:#5fe3a1;--stop:#ff6b5e;
+}
+[data-theme="light"]{
+  --bg:#edf1ea;--panel:#ffffff;--panel2:#f3f6f1;--line:rgba(16,38,30,.14);
+  --text:#10261e;--mute:#566e62;--accent:#f0b400;--ink:#1b1500;--go:#0d8350;--stop:#d03a2d;
+}
+*{box-sizing:border-box;margin:0}
+html,body{background:var(--bg)}
+body{font-family:'DM Sans',system-ui,sans-serif;color:var(--text);line-height:1.45}
+.app{min-height:100vh;background:var(--bg);color:var(--text);transition:background .4s}
+.disp{font-family:'Big Shoulders Display',Impact,sans-serif;font-weight:800;letter-spacing:.01em;line-height:.95}
+button{font:inherit;color:inherit;cursor:pointer;border:0;background:none}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.mute{color:var(--mute)}
+.wrap{max-width:1500px;margin:0 auto;padding:0 20px}
 
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
-    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+/* header */
+.top{position:sticky;top:0;z-index:40;background:var(--bg);border-bottom:1px solid var(--line)}
+.top-row{display:flex;align-items:center;gap:16px;padding:12px 0;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:12px;margin-right:auto}
+.brand h1{font-size:34px;text-transform:uppercase}
+.live{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:var(--go)}
+.live i{width:8px;height:8px;border-radius:50%;background:var(--go);animation:pulse 1.6s infinite}
+@keyframes pulse{50%{opacity:.25}}
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.chip{padding:6px 12px;border-radius:999px;border:1px solid var(--line);font-size:13px;font-weight:500;background:var(--panel)}
+.chip b{font-weight:700;margin-left:4px}
+button.chip:hover{border-color:var(--accent)}
+.btn{padding:9px 16px;border-radius:10px;border:1px solid var(--line);font-size:14px;font-weight:700;background:var(--panel);transition:border-color .15s,transform .1s}
+.btn:hover{border-color:var(--accent)}.btn:active{transform:scale(.97)}
+.btn.pri{background:var(--accent);color:var(--ink);border-color:var(--accent)}
+.btn.go{background:var(--go);color:#04210f;border-color:var(--go)}
+.btn.bad{color:var(--stop);border-color:color-mix(in srgb,var(--stop) 45%,transparent)}
+.btn.sm{padding:5px 10px;font-size:12px}
+.icon{width:38px;height:38px;padding:0;display:inline-flex;align-items:center;justify-content:center}
+.ticker{overflow:hidden;white-space:nowrap;border-top:1px solid var(--line);font-size:13px;font-weight:500;padding:7px 0;position:relative;height:34px}
+.ticker div{position:absolute;display:inline-flex;gap:48px;animation:scroll 40s linear infinite}
+@keyframes scroll{from{transform:translateX(100vw)}to{transform:translateX(-100%)}}
+.ticker em{font-style:normal;color:var(--accent);font-weight:700}
 
-    <link
-        href="https://fonts.googleapis.com/css2?family=Teko:wght@300;400;600;700&family=Rajdhani:wght@500;700&family=Inter:wght@400;600;700;900&display=swap"
-        rel="stylesheet">
+/* layout */
+.main{display:grid;grid-template-columns:minmax(0,430px) minmax(0,1fr);gap:20px;padding:20px 0 40px;align-items:start}
+@media(max-width:1000px){.main{grid-template-columns:1fr}.stage-col{position:static!important}}
+.stage-col{position:sticky;top:116px;display:flex;flex-direction:column;gap:12px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:16px}
+.sec-h{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:14px}
+.sec-h h2{font-size:28px;text-transform:uppercase}
 
-    <style>
-        /* ===== FONTS ===== */
-        .font-hero {
-            font-family: 'Teko', sans-serif;
-        }
+/* stage */
+.stage{padding:22px;text-align:center}
+.avatar{width:128px;height:128px;border-radius:50%;object-fit:cover;border:3px solid var(--accent);background:var(--panel2)}
+.pname{font-size:clamp(44px,6vw,64px);text-transform:uppercase;margin:12px 0 10px}
+.tags{display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin-bottom:18px}
+.tag{padding:3px 10px;border-radius:6px;background:var(--panel2);border:1px solid var(--line);font-size:12px;font-weight:700}
+.score{background:var(--bg);border:1px solid var(--line);border-radius:14px;padding:14px 18px;display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:12px}
+.score .lbl{font-size:13px;font-weight:700;text-align:left}
+.score .num{font-size:92px;color:var(--accent);font-weight:900;font-variant-numeric:tabular-nums}
+.bids{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:8px}
+.row{display:flex;gap:8px;margin-bottom:8px}
+.input{flex:1;min-width:0;padding:10px 14px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--text);font:inherit;font-weight:700}
+.waiting{padding:44px 10px}
+.waiting p{font-size:15px}
+.dots{display:flex;gap:5px;justify-content:center;margin-top:10px}
+.dots i{width:8px;height:8px;border-radius:50%;background:var(--go);animation:pulse 1.2s infinite}
+.dots i:nth-child(2){animation-delay:.2s}.dots i:nth-child(3){animation-delay:.4s}
+.filters{display:flex;flex-wrap:wrap;gap:6px;padding:12px}
+.filters button{padding:6px 12px;border-radius:8px;border:1px solid var(--line);font-size:13px;font-weight:700}
+.filters button.on{background:var(--accent);color:var(--ink);border-color:var(--accent)}
 
-        .font-tech {
-            font-family: 'Rajdhani', sans-serif;
-        }
+/* teams */
+.teams{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px}
+.team{position:relative;padding:16px 16px 14px 20px;border:1px solid var(--line);border-radius:14px;background:var(--panel);cursor:pointer;overflow:hidden;transition:border-color .15s}
+.team::before{content:"";position:absolute;left:0;top:0;bottom:0;width:6px;background:hsl(var(--h) 70% 58%)}
+.team:hover{border-color:hsl(var(--h) 70% 58%)}
+.team h3{font-size:30px;text-transform:uppercase;color:hsl(var(--h) 75% 62%);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+[data-theme="light"] .team h3{color:hsl(var(--h) 70% 36%)}
+.team .budget{font-size:42px;font-weight:900;font-variant-numeric:tabular-nums}
+.team .meta{font-size:12px;margin-top:2px}
+.bar{height:6px;border-radius:99px;background:var(--panel2);margin:12px 0 6px;overflow:hidden}
+.bar i{display:block;height:100%;background:hsl(var(--h) 70% 58%);transition:width .8s}
+.team .foot{display:flex;justify-content:space-between;font-size:12px;font-weight:700;color:var(--mute)}
+.sell{position:absolute;inset:0;z-index:2;display:flex;align-items:center;justify-content:center;background:color-mix(in srgb,var(--bg) 88%,transparent);opacity:0;transition:opacity .15s}
+.team:hover .sell,.team:focus-within .sell{opacity:1}
+.over{color:var(--stop)}
 
-        .font-ui {
-            font-family: 'Inter', sans-serif;
-        }
+/* sales */
+.sale{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--line)}
+.sale:last-child{border:0}
+.sale img{width:38px;height:38px;border-radius:10px;background:var(--panel2)}
+.sale .n{font-weight:700}.sale .t{font-size:13px}
+.sale .a{margin-left:auto;font-size:28px;font-weight:900;color:var(--go)}
+.empty{text-align:center;padding:28px 0;font-size:14px;color:var(--mute)}
 
-        /* ===== SCROLL ===== */
-        * {
-            scrollbar-width: thin;
-            scrollbar-color: rgba(34, 211, 238, 0.7) rgba(0, 0, 0, 0.2);
-        }
-
-        ::-webkit-scrollbar {
-            width: 6px;
-            height: 6px;
-        }
-
-        ::-webkit-scrollbar-thumb {
-            background: rgba(34, 211, 238, 0.55);
-            border-radius: 999px;
-        }
-
-        ::-webkit-scrollbar-thumb:hover {
-            background: rgba(34, 211, 238, 1);
-        }
-
-        /* ===== ANIMATIONS ===== */
-        @keyframes scroll-text {
-            0% {
-                transform: translateX(100%);
-            }
-
-            100% {
-                transform: translateX(-100%);
-            }
-        }
-
-        .animate-scroll {
-            animation: scroll-text 36s linear infinite;
-        }
-
-        @keyframes slam-in {
-            0% {
-                transform: scale(5);
-                opacity: 0;
-                filter: blur(20px);
-            }
-
-            55% {
-                transform: scale(0.95);
-                opacity: 1;
-                filter: blur(0px);
-            }
-
-            75% {
-                transform: scale(1.03);
-            }
-
-            100% {
-                transform: scale(1);
-            }
-        }
-
-        .animate-slam {
-            animation: slam-in 0.65s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
-        }
-
-        @keyframes ray-rotate {
-            from {
-                transform: rotate(0deg);
-            }
-
-            to {
-                transform: rotate(360deg);
-            }
-        }
-
-        .rays {
-            animation: ray-rotate 18s linear infinite;
-        }
-
-        @keyframes spotlight-pulse {
-
-            0%,
-            100% {
-                opacity: 0.35;
-                transform: scale(1);
-            }
-
-            50% {
-                opacity: 0.75;
-                transform: scale(1.08);
-            }
-        }
-
-        .spotlight {
-            animation: spotlight-pulse 4s ease-in-out infinite;
-        }
-
-        /* ===== GLASS ===== */
-        .glass-dark {
-            background: rgba(255, 255, 255, 0.03);
-            backdrop-filter: blur(18px);
-            border: 1px solid rgba(255, 255, 255, 0.06);
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.28);
-        }
-
-        .glass-light {
-            background: rgba(255, 255, 255, 0.78);
-            backdrop-filter: blur(18px);
-            border: 1px solid rgba(0, 0, 0, 0.06);
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.10);
-        }
-
-        .btn-main {
-            background: linear-gradient(90deg, #06b6d4, #2563eb);
-            box-shadow: 0 0 35px rgba(6, 182, 212, 0.25);
-        }
-
-        /* ===== TEAM THEMES (12) ===== */
-        .team-0 {
-            border-color: rgba(34, 211, 238, 0.25);
-        }
-
-        .team-0 .t-text {
-            color: #22d3ee;
-        }
-
-        .team-1 {
-            border-color: rgba(251, 113, 133, 0.25);
-        }
-
-        .team-1 .t-text {
-            color: #fb7185;
-        }
-
-        .team-2 {
-            border-color: rgba(52, 211, 153, 0.25);
-        }
-
-        .team-2 .t-text {
-            color: #34d399;
-        }
-
-        .team-3 {
-            border-color: rgba(251, 191, 36, 0.25);
-        }
-
-        .team-3 .t-text {
-            color: #fbbf24;
-        }
-
-        .team-4 {
-            border-color: rgba(167, 139, 250, 0.25);
-        }
-
-        .team-4 .t-text {
-            color: #a78bfa;
-        }
-
-        .team-5 {
-            border-color: rgba(244, 114, 182, 0.25);
-        }
-
-        .team-5 .t-text {
-            color: #f472b6;
-        }
-
-        .team-6 {
-            border-color: rgba(96, 165, 250, 0.25);
-        }
-
-        .team-6 .t-text {
-            color: #60a5fa;
-        }
-
-        .team-7 {
-            border-color: rgba(163, 230, 53, 0.25);
-        }
-
-        .team-7 .t-text {
-            color: #a3e635;
-        }
-
-        .team-8 {
-            border-color: rgba(249, 115, 22, 0.25);
-        }
-
-        .team-8 .t-text {
-            color: #fb923c;
-        }
-
-        .team-9 {
-            border-color: rgba(45, 212, 191, 0.25);
-        }
-
-        .team-9 .t-text {
-            color: #2dd4bf;
-        }
-
-        .team-10 {
-            border-color: rgba(148, 163, 184, 0.25);
-        }
-
-        .team-10 .t-text {
-            color: #cbd5e1;
-        }
-
-        .team-11 {
-            border-color: rgba(129, 140, 248, 0.25);
-        }
-
-        .team-11 .t-text {
-            color: #818cf8;
-        }
-    </style>
+/* overlays */
+.ov{position:fixed;inset:0;z-index:100;display:flex;align-items:center;justify-content:center;background:rgba(4,12,9,.9);padding:16px}
+.modal{width:100%;max-width:640px;max-height:86vh;display:flex;flex-direction:column;overflow:hidden;background:var(--panel);border:1px solid var(--line);border-radius:18px;animation:pop .25s ease-out}
+@keyframes pop{from{transform:scale(.94);opacity:0}}
+.mh{display:flex;justify-content:space-between;align-items:center;padding:18px 20px;border-bottom:1px solid var(--line)}
+.mh h2{font-size:30px;text-transform:uppercase}
+.mb{padding:16px 20px;overflow-y:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px}
+.li{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 14px;border:1px solid var(--line);border-radius:12px;background:var(--panel2)}
+.li.hot{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 14%,transparent)}
+.li b{font-size:14px}.li small{display:block;color:var(--mute);font-size:12px}
+.li input{width:20px;height:20px;accent-color:var(--accent)}
+.drawer{position:fixed;inset:0;z-index:90;display:flex;justify-content:flex-end;background:rgba(4,12,9,.6)}
+.dr{width:100%;max-width:520px;height:100%;background:var(--panel);border-left:1px solid var(--line);display:flex;flex-direction:column;animation:slide .25s ease-out}
+@keyframes slide{from{transform:translateX(40px);opacity:0}}
+.dr-h{padding:22px;border-bottom:1px solid var(--line)}
+.dr-h h2{font-size:52px;text-transform:uppercase}
+.lead{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
+.lead div{padding:10px 12px;border-radius:10px;background:var(--panel2);border:1px solid var(--line)}
+.lead small{display:block;font-size:12px;color:var(--mute);font-weight:700}
+.edit{padding:16px 22px;border-bottom:1px solid var(--line);display:grid;gap:8px;background:var(--panel2)}
+.edit .two{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.dr-l{flex:1;overflow-y:auto;padding:16px 22px;display:flex;flex-direction:column;gap:8px}
+.pl{display:flex;align-items:center;gap:12px;padding:10px 12px;border:1px solid var(--line);border-radius:12px}
+.pl .i{width:32px;height:32px;border-radius:8px;background:var(--accent);color:var(--ink);display:flex;align-items:center;justify-content:center;font-weight:900}
+.pl .p{margin-left:auto;font-size:24px;font-weight:900;color:var(--go)}
+select{padding:5px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--text);font-size:12px}
+.reveal{text-align:center;animation:pop .5s cubic-bezier(.2,.8,.2,1)}
+.reveal img{width:min(300px,60vw);height:min(300px,60vw);border-radius:50%;object-fit:cover;border:5px solid var(--accent);background:var(--panel2)}
+.reveal h1{font-size:clamp(56px,11vw,130px);text-transform:uppercase;color:#fff;margin:18px 0 12px}
+.spin{width:130px;height:130px;border-radius:50%;border:6px solid var(--line);border-top-color:var(--accent);animation:rot 0.8s linear infinite;margin:0 auto 24px}
+@keyframes rot{to{transform:rotate(360deg)}}
+@media(prefers-reduced-motion:reduce){*{animation:none!important}}
+</style>
 </head>
-
-<body class="font-ui selection:bg-cyan-500/30">
-    <div id="root"></div>
-
-    {% verbatim %}
-    <script type="text/babel">
-        const { useEffect, useMemo, useRef, useState } = React;
-
-        // ===== ICONS =====
-        const Icon = ({ children, c }) => (
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
-                fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-                className={c}>
-                {children}
-            </svg>
-        );
-
-        const Trophy = ({ c }) => <Icon c={c}><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6M18 9h1.5a2.5 2.5 0 0 0 0-5H18M4 22h16M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22M18 2H6v7a6 6 0 0 0 12 0V2Z" /></Icon>;
-        const Users = ({ c }) => <Icon c={c}><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 7a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" /></Icon>;
-        const Lock = ({ c }) => <Icon c={c}><rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></Icon>;
-        const Sun = ({ c }) => <Icon c={c}><circle cx="12" cy="12" r="4" /><path d="M12 2v2" /><path d="M12 20v2" /><path d="m4.93 4.93 1.41 1.41" /><path d="m17.66 17.66 1.41 1.41" /><path d="M2 12h2" /><path d="M20 12h2" /><path d="m6.34 17.66-1.41 1.41" /><path d="m19.07 4.93-1.41 1.41" /></Icon>;
-        const Moon = ({ c }) => <Icon c={c}><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" /></Icon>;
-        const Share2 = ({ c }) => <Icon c={c}><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><line x1="8.59" y1="13.51" x2="15.42" y2="17.49" /><line x1="15.41" y1="6.51" x2="8.59" y2="10.49" /></Icon>;
-        const Download = ({ c }) => <Icon c={c}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></Icon>;
-        const X = ({ c }) => <Icon c={c}><path d="M18 6 6 18M6 6l12 12" /></Icon>;
-        const ChevronRight = ({ c }) => <Icon c={c}><path d="m9 18 6-6-6-6" /></Icon>;
-        const Gavel = ({ c }) => <Icon c={c}><path d="m14 13-7.5 7.5c-.5.5-1.5.5-2 0L2 18c-.5-.5-.5-1.5 0-2L9.5 8.5M17.5 12.5l-5.5-5.5M10 2l11 11" /></Icon>;
-
-        // ===== CSRF =====
-        function getCookie(name) {
-            let cookieValue = null;
-            if (document.cookie && document.cookie !== '') {
-                const cookies = document.cookie.split(';');
-                for (let i = 0; i < cookies.length; i++) {
-                    const cookie = cookies[i].trim();
-                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                        break;
-                    }
-                }
-            }
-            return cookieValue;
-        }
-
-        function App() {
-            const [data, setData] = useState(null);
-
-            // roles
-            const [isAdmin, setIsAdmin] = useState(false);
-            const [isViewerMode, setIsViewerMode] = useState(false);
-
-            // theme
-            const [theme, setTheme] = useState("dark");
-            const isDark = theme === "dark";
-
-            // modals
-            const [showPin, setShowPin] = useState(false);
-            const [pinInput, setPinInput] = useState("");
-
-            const [showShare, setShowShare] = useState(false);
-            const [selectedTeam, setSelectedTeam] = useState(null);
-
-            // bidding
-            const [customBid, setCustomBid] = useState("");
-
-            const [showCheat, setShowCheat] = useState(false);
-            const [search, setSearch] = useState("");
-
-
-            // team leadership edit
-            const [teamNameDraft, setTeamNameDraft] = useState("");
-            const [captainDraft, setCaptainDraft] = useState("");
-            const [viceDraft, setViceDraft] = useState("");
-
-            // list modals
-            const [showRemainingModal, setShowRemainingModal] = useState(false);
-            const [showUnsoldModal, setShowUnsoldModal] = useState(false);
-            const [transferPlayer, setTransferPlayer] = useState(null);
-            const [transferTeamId, setTransferTeamId] = useState("");
-
-            // animations
-            const [animStage, setAnimStage] = useState("idle");
-            const [scrambleText, setScrambleText] = useState("INITIALIZING...");
-            const [tempWinner, setTempWinner] = useState(null);
-
-            const prevPlayerId = useRef(null);
-            const [categoryFilter, setCategoryFilter] = useState("ALL");
-
-            const togglePriority = async (id) => {
-                try {
-                    // Optimistic UI update
-                    const updated = (data.all_unsold_players || []).map(p =>
-                        p.id === id ? { ...p, priority_score: p.priority_score > 0 ? 0 : 1 } : p
-                    );
-                    setData({ ...data, all_unsold_players: updated });
-
-                    await fetch("/api/toggle-priority/", {
-                        method: "POST",
-                        headers: headersJSON,
-                        body: JSON.stringify({ player_id: id })
-                    });
-
-                } catch (e) {
-                    console.error("Priority Toggle Error", e);
-                }
-            };
-
-            // viewer mode
-            useEffect(() => {
-                const params = new URLSearchParams(window.location.search);
-                if (params.get("role") === "viewer") {
-                    setIsViewerMode(true);
-                    setIsAdmin(false);
-                }
-            }, []);
-
-            // theme persist
-            useEffect(() => {
-                const saved = localStorage.getItem("auction_theme");
-                if (saved === "light" || saved === "dark") setTheme(saved);
-            }, []);
-            useEffect(() => {
-                localStorage.setItem("auction_theme", theme);
-            }, [theme]);
-
-            const headersJSON = useMemo(() => ({
-                "Content-Type": "application/json",
-                "X-CSRFToken": getCookie("csrftoken"),
-            }), []);
-
-            const glass = isDark ? "glass-dark" : "glass-light";
-            const pageBG = isDark
-                ? "bg-[#020617] bg-[radial-gradient(circle_at_50%_-20%,_#1e293b_0%,_#020617_80%)] text-slate-100"
-                : "bg-slate-50 text-slate-900";
-
-            const getImg = (p) => {
-                if (!p) return "";
-                if (p.image && p.image.length > 5) return `/proxy-image/?url=${encodeURIComponent(p.image)}`;
-                return `https://api.dicebear.com/9.x/initials/svg?seed=${encodeURIComponent(p.name || "Player")}`;
-            };
-
-            // scramble spin
-            useEffect(() => {
-                if (animStage !== "spinning") return;
-                const words = ["SEARCHING", "MATCHING", "LOCKED", "TARGETING", "ANALYZING", "SCANNING"];
-                const interval = setInterval(() => {
-                    setScrambleText(words[Math.floor(Math.random() * words.length)] + "...");
-                }, 90);
-                return () => clearInterval(interval);
-            }, [animStage]);
-
-            // polling
-            const fetchData = async () => {
-                try {
-                    const res = await fetch("/api/state/");
-                    const d = await res.json();
-                    if (d.error) return;
-
-                    setData(d);
-
-                    // reveal sync
-                    if (d.current_player && d.current_player.id !== prevPlayerId.current) {
-                        if (prevPlayerId.current !== null) {
-                            setTempWinner(d.current_player);
-                            setAnimStage("revealed");
-                        }
-                        prevPlayerId.current = d.current_player.id;
-                    } else if (!d.current_player) {
-                        prevPlayerId.current = null;
-                        if (animStage !== "spinning") setAnimStage("idle");
-                    }
-
-                } catch (e) {
-                    console.error("State Sync Error", e);
-                }
-            };
-
-            useEffect(() => {
-                fetchData();
-                const interval = setInterval(fetchData, 1000);
-                return () => clearInterval(interval);
-            }, [animStage, isAdmin, isViewerMode]);
-
-            // actions
-            const doAction = async (action, payload = {}) => {
-                try {
-                    if (!isAdmin) return;
-
-                    if (action === "SPIN") {
-                        setAnimStage("spinning");
-
-                        await fetch("/api/action/", {
-                            method: "POST",
-                            headers: headersJSON,
-                            body: JSON.stringify({ action, category: categoryFilter }),
-                        });
-
-                        setTimeout(async () => {
-                            const r = await fetch("/api/state/");
-                            const nd = await r.json();
-                            setData(nd);
-                            setTempWinner(nd.current_player);
-                            setAnimStage("revealed");
-                            if (nd.current_player) prevPlayerId.current = nd.current_player.id;
-                        }, 1200);
-
-                        return;
-                    }
-
-                    await fetch("/api/action/", {
-                        method: "POST",
-                        headers: headersJSON,
-                        body: JSON.stringify({ action, ...payload }),
-                    });
-
-                    fetchData();
-                } catch (e) {
-                    console.error("Action Error", e);
-                }
-            };
-
-            // pin verify
-            const verifyAdmin = async () => {
-                try {
-                    const res = await fetch("/api/verify-pin/", {
-                        method: "POST",
-                        headers: headersJSON,
-                        body: JSON.stringify({ pin: pinInput }),
-                    });
-                    const json = await res.json();
-
-                    if (json.success) {
-                        setIsAdmin(true);
-                        setShowPin(false);
-                        setPinInput("");
-                    } else {
-                        alert("INVALID PIN");
-                        setPinInput("");
-                    }
-                } catch (e) {
-                    alert("SERVER ERROR");
-                }
-            };
-
-            // share
-            const shareLink = (type) => {
-                const url = `${window.location.origin}${window.location.pathname}${type === "viewer" ? "?role=viewer" : ""}`;
-                const text = type === "captain"
-                    ? `🧢 Join Auction (Captain): ${url}`
-                    : `👀 Watch Live Auction (Viewer): ${url}`;
-                window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
-            };
-
-            // custom bid
-            const submitCustomBid = () => {
-                if (!customBid) return;
-                const num = parseInt(customBid);
-                if (isNaN(num)) return;
-                doAction("BID", { amount: num });
-                setCustomBid("");
-            };
-
-            // team modal leadership
-            useEffect(() => {
-                if (!selectedTeam) return;
-                setTeamNameDraft(selectedTeam.name || "");
-                setCaptainDraft(selectedTeam.captain_name || "");
-                setViceDraft(selectedTeam.vice_captain_name || "");
-            }, [selectedTeam]);
-
-            const saveRoles = async () => {
-                try {
-                    if (!selectedTeam) return;
-
-                    await fetch("/api/assign-roles/", {
-                        method: "POST",
-                        headers: headersJSON,
-                        body: JSON.stringify({
-                            team_id: selectedTeam.id,
-                            team_name: teamNameDraft,
-                            captain: captainDraft,
-                            vice_captain: viceDraft,
-                        }),
-                    });
-
-                    fetchData();
-                    setSelectedTeam(null);
-                } catch (e) {
-                    console.error("Role Save Error", e);
-                }
-            };
-
-            const handleTransfer = async () => {
-                if (!transferPlayer || !transferTeamId) return;
-                await doAction("TRANSFER", {
-                    player_name: transferPlayer.player_name,
-                    old_team: selectedTeam.name,
-                    new_team_id: transferTeamId
-                });
-                setTransferPlayer(null);
-                setTransferTeamId("");
-            };
-
-            if (!data) {
-                return (
-                    <div className="h-screen flex items-center justify-center bg-black font-hero text-5xl text-cyan-500 animate-pulse uppercase">
-                        LOADING STADIUM...
-                    </div>
-                );
-            }
-
-            const {
-                current_player,
-                current_bid,
-                teams = [],
-                history = [],
-                stats = {},
-                auction_name,
-                categories,
-                is_unsold_round,
-            } = data;
-            const categoryList = ["ALL", ...(categories || [])];
-            const sortedHistory = [...history].slice().reverse();
-            const latestFeed = sortedHistory.slice(0, 14);
-            const latestTicker = sortedHistory.slice(0, 30);
-
-
-            return (
-                <div className={`min-h-screen ${pageBG} transition-colors duration-700`}>
-                    <div className="min-h-screen flex flex-col gap-4 p-4 md:p-5">
-
-                        {/* ===== REVEAL ===== */}
-                        {(animStage === "spinning" || animStage === "revealed") && (
-                            <div
-                                className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 backdrop-blur-3xl"
-                                onClick={isAdmin ? () => { setAnimStage("idle"); setTempWinner(null); } : null}
-                            >
-                                {animStage === "spinning" && (
-                                    <div className="text-center relative">
-                                        <div className="absolute inset-0 bg-cyan-500 blur-[140px] opacity-20"></div>
-                                        <div className="w-64 h-64 rounded-full border-2 border-cyan-500/30 border-t-cyan-400 animate-spin mx-auto mb-10 flex items-center justify-center bg-black/40 shadow-[0_0_60px_rgba(6,182,212,0.25)]">
-                                            <Trophy c="w-20 h-20 text-cyan-500/40" />
-                                        </div>
-                                        <h2 className="font-tech text-6xl tracking-[0.25em] animate-pulse text-white uppercase">
-                                            {scrambleText}
-                                        </h2>
-                                        <p className="text-cyan-400 font-mono mt-4 text-xs tracking-[0.5em] opacity-70">
-                                            ACCESSING DATABASE
-                                        </p>
-                                    </div>
-                                )}
-
-                                {animStage === "revealed" && tempWinner && (
-                                    <div className="text-center animate-slam relative w-full max-w-5xl mx-auto px-4">
-                                        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[900px] h-[900px] bg-gradient-to-t from-transparent via-cyan-500/10 to-transparent rays -z-10 opacity-60"></div>
-
-                                        <div className="relative inline-block mb-10">
-                                            <div className="absolute  inset-0 bg-gradient-to-r from-cyan-500 to-blue-600 rounded-full blur-2xl opacity-40"></div>
-                                            <img src={getImg(tempWinner)} className="w-64 h-64 md:w-80 md:h-80 rounded-full border-4 border-white shadow-2xl  relative z-10 bg-slate-900 object-cover animate-fadeIn" />
-                                            <div className="flex justify-center gap-4 mt-6 animate-slideUp">
-                                                <span className="bg-yellow-400 text-black px-6 py-2 font-black font-hero text-xl md:text-2xl uppercase border-2 border-white shadow-[0_6px_12px_rgba(0,0,0,0.4)] -skew-x-12">
-                                                    {tempWinner.category}
-                                                </span>
-                                                <br />
-                                                <span className="bg-yellow-400 text-black px-6 py-2 font-black font-hero text-xl md:text-2xl uppercase border-2 border-white shadow-[0_6px_12px_rgba(0,0,0,0.4)] -skew-x-12">
-                                                    {tempWinner.department}
-                                                </span>
-                                            </div>
-                                        </div>
-
-                                        <h1 className="font-hero text-7xl md:text-9xl text-transparent bg-clip-text bg-gradient-to-b from-white to-slate-400 drop-shadow-[0_10px_10px_rgba(0,0,0,0.5)] leading-[0.8] mb-4 uppercase">
-                                            {tempWinner.name}
-                                        </h1>
-                                        <div className="flex flex-wrap justify-center gap-4 mb-10 animate-slideUp">
-                                            <span className="font-tech text-lg md:text-xl text-cyan-400 tracking-[0.25em] uppercase border border-cyan-500/30 px-4 py-1 rounded bg-cyan-950/30">
-                                                {tempWinner.position}
-                                            </span>
-                                            <span className="font-tech text-lg md:text-xl text-cyan-400 tracking-[0.25em] uppercase border border-cyan-500/30 px-4 py-1 rounded bg-cyan-950/30">
-                                                {tempWinner.year}
-                                                {console.log(tempWinner)}
-                                            </span>
-                                        </div>
-
-                                        {isAdmin ? (
-                                            <button
-                                                onClick={(e) => { e.stopPropagation(); setAnimStage("idle"); setTempWinner(null); }}
-                                                className="px-16 py-5 bg-white text-black font-black text-2xl tracking-widest rounded-full hover:scale-105 hover:shadow-[0_0_40px_rgba(255,255,255,0.4)] transition active:scale-95 uppercase"
-                                            >
-                                                OPEN BIDDING
-                                            </button>
-                                        ) : (
-                                            <p className="text-white/50 animate-pulse font-mono uppercase tracking-widest">
-                                                Waiting for Auctioneer...
-                                            </p>
-                                        )}
-                                    </div>
-                                )}
-                            </div>
-                        )}
-
-                        {/* ===== NAVBAR ===== */}
-                        <header className={`${glass} rounded-3xl px-6 py-4 flex flex-col xl:flex-row items-center gap-4 sticky top-3 z-50`}>
-
-                            {/* LEFT BRAND */}
-                            <div className="flex items-center justify-between w-full xl:w-auto gap-4">
-                                <div className="flex items-center gap-4">
-                                    <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center shadow-xl shadow-cyan-500/20">
-                                        <Trophy c="text-white w-7 h-7" />
-                                    </div>
-
-                                    <div>
-                                        <h1 className={`font-hero text-4xl leading-none uppercase tracking-tight ${isDark ? "text-white" : "text-slate-900"}`}>
-                                            {auction_name}
-                                        </h1>
-
-                                        <div className="flex items-center gap-3 mt-1">
-                                            <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
-
-                                            <span className="text-[10px] font-black tracking-[0.25em] uppercase text-cyan-500">
-                                                LIVE
-                                            </span>
-
-                                            <span 
-                                                className="text-[10px] font-black tracking-[0.25em] uppercase opacity-60 cursor-pointer hover:text-cyan-400 hover:opacity-100 transition"
-                                                onClick={() => setShowRemainingModal(true)}
-                                            >
-                                                Remaining: {stats.remaining || 0}
-                                            </span>
-
-                                            <span 
-                                                className="text-[10px] font-black tracking-[0.25em] uppercase opacity-60 cursor-pointer hover:text-red-400 hover:opacity-100 transition"
-                                                onClick={() => setShowUnsoldModal(true)}
-                                            >
-                                                Unsold: {stats.unsold || 0}
-                                            </span>
-
-                                            <span className="text-[10px] font-black tracking-[0.25em] uppercase opacity-60">
-                                                {isViewerMode ? "VIEWER MODE" : (isAdmin ? "ADMIN" : "CONSOLE")}
-                                            </span>
-                                            {isAdmin && (
-                                                <button
-                                                    onClick={() => setShowCheat(true)}
-                                                    className="px-5 py-2 text-xs font-black rounded-xl border border-fuchsia-500 text-fuchsia-400 hover:bg-fuchsia-500/10 uppercase tracking-widest transition hover:scale-105"
-                                                >
-                                                    Remaining Player
-                                                </button>
-                                            )}
-
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* TICKER */}
-                            <div className="w-full xl:flex-1 xl:px-10">
-                                <div className={`h-10 rounded-full border flex items-center overflow-hidden relative ${isDark ? "bg-black/40 border-white/5" : "bg-white border-slate-200"
-                                    }`}>
-                                    <div className="whitespace-nowrap animate-scroll absolute text-[11px] font-bold tracking-wider text-cyan-500 flex gap-16 uppercase italic">
-                                        {latestTicker.length > 0 ? latestTicker.map((h, i) => (
-                                            <span key={i}>
-                                                <span className={isDark ? "text-white" : "text-slate-900"}>{h.player_name}</span> SOLD TO{" "}
-                                                <span className="text-emerald-500">{h.team_name}</span>{" "}
-                                                FOR <span className="text-yellow-500">${h.amount}</span>
-                                            </span>
-                                        )) : <span>WAITING FOR FIRST SALE...</span>}
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* ACTIONS */}
-                            <div className="flex gap-2 items-center">
-
-                                {/* Theme */}
-                                <button
-                                    onClick={() => setTheme(isDark ? "light" : "dark")}
-                                    className={`px-3 py-2 rounded-xl border hover:scale-105 transition ${isDark ? "border-white/10 text-white/80" : "border-slate-200 text-slate-700"
-                                        }`}
-                                    title="Day/Night"
-                                >
-                                    {isDark ? <Sun c="w-5 h-5" /> : <Moon c="w-5 h-5" />}
-                                </button>
-
-                                {/* Share + Export (Admin only) */}
-                                {isAdmin && (
-                                    <>
-                                        <button
-                                            onClick={() => setShowShare(true)}
-                                            className={`px-3 py-2 rounded-xl border hover:scale-105 transition ${isDark ? "border-white/10" : "border-slate-200"
-                                                }`}
-                                            title="Share"
-                                        >
-                                            <Share2 c="w-5 h-5 text-cyan-500" />
-                                        </button>
-
-                                        <a
-                                            href="/export/"
-                                            className={`px-3 py-2 rounded-xl border hover:scale-105 transition ${isDark ? "border-white/10" : "border-slate-200"
-                                                }`}
-                                            title="Export CSV"
-                                        >
-                                            <Download c="w-5 h-5 text-emerald-500" />
-                                        </a>
-                                    </>
-                                )}
-                                
-                                {/* Admin login */}
-                                {!isViewerMode && (
-                                    <button
-                                        onClick={() => isAdmin ? setIsAdmin(false) : setShowPin(true)}
-                                        className={`px-6 py-2 text-xs font-black rounded-xl border transition-all uppercase ${isAdmin ? "border-red-500 text-red-400 hover:bg-red-500/10" : "border-cyan-500 text-cyan-500 hover:bg-cyan-500/10"
-                                            }`}
-                                    >
-                                        {isAdmin ? "EXIT ADMIN" : "ADMIN LOGIN"}
-                                    </button>
-                                )}
-                            </div>
-                        </header>
-
-                        {/* ===== MAIN ===== */}
-                        <main className="flex-1 flex flex-col lg:flex-row gap-4 overflow-hidden">
-
-                            {/* LEFT */}
-                            <section className="lg:w-[460px] flex flex-col gap-4 overflow-hidden">
-
-                                {/* PLAYER */}
-                                <div className={`${glass} rounded-[2.5rem] p-7 relative overflow-hidden`}>
-                                    <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-cyan-500 to-purple-600"></div>
-
-                                    {!current_player ? (
-                                        <div className="text-center py-12">
-                                            <Trophy c="w-20 h-20 opacity-10 mx-auto mb-8" />
-
-                                            {isAdmin ? (
-                                                <button
-                                                    onClick={() => doAction("SPIN")}
-                                                    className="px-14 py-5 btn-main text-white font-black text-2xl rounded-full shadow-2xl hover:scale-105 transition-all font-hero uppercase tracking-widest"
-                                                >
-                                                    SPIN WHEEL
-                                                </button>
-                                            ) : (
-                                                <div>
-                                                    <p className="font-tech text-2xl animate-pulse text-cyan-500 uppercase tracking-[0.3em]">
-                                                        Stand By
-                                                    </p>
-                                                    <p className="text-xs opacity-40 mt-2 uppercase tracking-widest">
-                                                        Next Player Soon
-                                                    </p>
-                                                </div>
-                                            )}
-                                        </div>
-                                    ) : (
-                                        <div className="text-center">
-                                            <div className="relative inline-block mb-5">
-                                                <div className="absolute inset-0 bg-cyan-400/20 blur-[70px] rounded-full spotlight"></div>
-                                                <img src={getImg(current_player)} className="w-36 h-36 md:w-44 md:h-44 rounded-full border-4 border-white/10 shadow-2xl bg-slate-900 object-cover relative z-10" />
-                                            </div>
-
-                                            <h2 className="font-hero text-6xl leading-none mb-2 uppercase">
-                                                {current_player.name}
-                                            </h2>
-
-                                            <div className="flex justify-center gap-2 mb-6">
-                                                <span className="px-3 py-1 rounded-full bg-white/5 border border-white/10 text-[10px] font-bold uppercase opacity-70">
-                                                    {current_player.position}
-                                                </span>
-                                                <span className="px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-[10px] font-bold uppercase text-cyan-500">
-                                                    {current_player.category}
-                                                </span>
-                                                <span className="px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-[10px] font-bold uppercase text-cyan-500">
-                                                    {current_player.department}
-                                                </span>
-                                                <span className="px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-[10px] font-bold uppercase text-cyan-500">
-                                                    {current_player.year}
-                                                </span>
-                                            </div>
-
-                                            <div className={`${isDark ? "bg-black/55" : "bg-white"} rounded-[2rem] p-6 border ${isDark ? "border-white/5" : "border-slate-200"
-                                                }`}>
-                                                <div className={`flex justify-between items-end border-b border-dashed pb-4 mb-5 ${isDark ? "border-white/10" : "border-slate-200"
-                                                    }`}>
-                                                    <div className="text-left">
-                                                        <p className="text-[10px] font-black uppercase opacity-60 tracking-[0.3em]">Current Bid</p>
-                                                        <p className="text-[10px] font-mono opacity-40 mt-1">BASE: {current_player.base_price}</p>
-                                                    </div>
-                                                    <div className="font-hero text-6xl text-emerald-500 leading-none">
-                                                        {current_bid}
-                                                    </div>
-                                                </div>
-
-                                                {isAdmin ? (
-                                                    <div className="space-y-3">
-
-                                                        <div className="grid grid-cols-4 gap-2">
-                                                            {[1, 5, 10, 50].map(amt => (
-                                                                <button
-                                                                    key={amt}
-                                                                    onClick={() => doAction("BID", { amount: current_bid + amt })}
-                                                                    className={`py-2 rounded-xl font-black text-[10px] uppercase tracking-widest active:scale-95 transition ${isDark ? "bg-white/5 border border-white/10 hover:bg-white/10" : "bg-slate-50 border border-slate-200 hover:bg-slate-100"
-                                                                        }`}
-                                                                >
-                                                                    +{amt}
-                                                                </button>
-                                                            ))}
-                                                        </div>
-
-                                                        <div className="flex gap-2">
-                                                            <input
-                                                                type="number"
-                                                                placeholder="Custom bid"
-                                                                value={customBid}
-                                                                onChange={(e) => setCustomBid(e.target.value)}
-                                                                onKeyDown={(e) => { if (e.key === "Enter") submitCustomBid(); }}
-                                                                className={`flex-1 rounded-xl px-4 py-3 text-sm font-black outline-none ${isDark ? "bg-black/40 border border-white/10 focus:border-cyan-500" : "bg-white border border-slate-200 focus:border-blue-500"
-                                                                    }`}
-                                                            />
-                                                            <button
-                                                                onClick={submitCustomBid}
-                                                                className="px-6 rounded-xl bg-white text-black font-black text-xs uppercase tracking-widest hover:scale-105 transition active:scale-95"
-                                                            >
-                                                                SET
-                                                            </button>
-                                                        </div>
-
-                                                        <button
-                                                            onClick={() => doAction("UNSOLD")}
-                                                            className="w-full py-3 rounded-xl border border-red-500/25 text-red-500 bg-red-500/5 hover:bg-red-500/10 font-black text-xs uppercase tracking-[0.35em] transition active:scale-95"
-                                                        >
-                                                            PASS / UNSOLD
-                                                        </button>
-                                                    </div>
-                                                ) : (
-                                                    <div className="text-center py-3 rounded-xl border border-white/5 bg-white/5">
-                                                        <p className="text-[10px] font-black uppercase tracking-[0.35em] opacity-60 mb-2">
-                                                            Bidding Live
-                                                        </p>
-                                                        <div className="flex justify-center gap-1">
-                                                            <div className="w-2 h-2 bg-emerald-500 rounded-full animate-bounce"></div>
-                                                            <div className="w-2 h-2 bg-emerald-500 rounded-full animate-bounce delay-100"></div>
-                                                            <div className="w-2 h-2 bg-emerald-500 rounded-full animate-bounce delay-200"></div>
-                                                        </div>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
-                                {/* CATEGORY FILTER */}
-                                {isAdmin && (
-                                    <div className={`${glass} rounded-2xl p-4 flex flex-wrap gap-2 justify-center`}>
-                                        {categoryList.map(cat => (
-                                            <button
-                                                key={cat}
-                                                onClick={() => setCategoryFilter(cat)}
-                                                className={`px-4 py-2 text-xs font-black rounded-xl uppercase tracking-widest transition ${categoryFilter === cat
-                                                    ? "bg-cyan-500 text-black shadow-lg"
-                                                    : isDark
-                                                        ? "bg-white/5 border border-white/10 hover:bg-white/10"
-                                                        : "bg-white border border-slate-200 hover:bg-slate-100"
-                                                    }`}
-                                            >
-                                                {cat}
-                                            </button>
-                                        ))}
-                                    </div>
-                                )}
-                                
-                                {isAdmin && (
-                                    <button
-                                        onClick={() => doAction("RESET_UNSOLD")}
-                                        className="px-5 py-2 text-xs font-black rounded-xl border border-emerald-500 text-emerald-400 hover:bg-emerald-500/10 uppercase tracking-widest transition"
-                                    >
-                                        RESET UNSOLD
-                                    </button>
-                                )}
-                            </section>
-
-
-                            {/* RIGHT */}
-                            <section className="flex-1 flex flex-col gap-4 overflow-hidden">
-
-                                {/* TEAMS */}
-                                <div className={`${glass} rounded-[2.5rem] p-6 flex flex-col overflow-hidden`}>
-                                    <div className="flex items-center justify-between mb-6">
-                                        <h3 className="font-hero text-3xl uppercase tracking-wide flex items-center gap-3">
-                                            <Users c="text-cyan-500 w-7 h-7" /> Team Standings
-                                        </h3>
-                                        <span className="text-[10px] font-black uppercase tracking-[0.35em] opacity-30">
-                                            CLICK TO VIEW SQUAD
-                                        </span>
-                                    </div>
-
-                                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 overflow-y-auto pr-2 pb-2">
-                                        {teams.map((team, idx) => {
-                                            const canAfford = true;
-                                            const isFull = team.players_count >= 8;
-
-                                            return (
-                                                <div
-                                                    key={team.id}
-                                                    onClick={() => setSelectedTeam(team)}
-                                                    className={`relative p-6 rounded-[2rem] border transition-all duration-500 group shadow-lg team-${idx % 12} ${isDark ? "bg-white/[0.01] hover:bg-white/[0.04]" : "bg-white hover:bg-slate-50"
-                                                        }`}
-                                                >
-                                                    {/* SELL overlay */}
-                                                    {isAdmin && current_player && (
-                                                        <div
-                                                            className="absolute inset-0 z-20 opacity-0 group-hover:opacity-100 transition-all flex flex-col items-center justify-center rounded-[2rem] bg-black/90 backdrop-blur-md gap-3"
-                                                            onClick={e => e.stopPropagation()}
-                                                        >
-                                                            {canAfford && !isFull ? (
-                                                                <button
-                                                                    onClick={() => doAction("SELL", { team_id: team.id })}
-                                                                    className="px-10 py-4 bg-emerald-500 hover:bg-emerald-400 text-black font-black text-sm rounded-full shadow-2xl transform hover:scale-110 active:scale-95 transition-all uppercase tracking-widest flex items-center gap-2"
-                                                                >
-                                                                    <Gavel c="w-5 h-5" /> SELL
-                                                                </button>
-                                                            ) : (
-                                                                <div className="text-red-400 font-black text-xs uppercase p-4 border border-red-500/20 bg-red-500/5 rounded-2xl">
-                                                                    {isFull ? "TEAM FULL" : "NO FUNDS"}
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                    )}
-
-                                                    <div className="flex justify-between items-start mb-5">
-                                                        <div>
-                                                            <h4 className="font-hero text-4xl uppercase leading-none mb-2 t-text truncate max-w-[160px]">
-                                                                {team.name}
-                                                            </h4>
-
-                                                            <p className="text-[10px] font-black uppercase tracking-[0.25em] opacity-40 flex items-center gap-1">
-                                                                View Squad <ChevronRight c="w-4 h-4 opacity-60" />
-                                                            </p>
-
-                                                            <div className="space-y-0.5 opacity-45 mt-3">
-                                                                <p className="text-[9px] font-black uppercase">CPT: {team.captain_name || "Not Set"}</p>
-                                                                <p className="text-[9px] font-black uppercase">VC: {team.vice_captain_name || "Not Set"}</p>
-                                                            </div>
-                                                        </div>
-
-                                                        <div className="text-right">
-                                                            <p className={`font-hero text-5xl leading-none ${team.budget < 0 ? "text-red-500" : "t-text"
-                                                                }`}>
-                                                                {team.budget}
-                                                            </p>
-                                                            <p className="text-[9px] font-bold opacity-20 uppercase tracking-[0.2em]">Pts</p>
-                                                            {team.budget < 0 && (
-                                                                <p className="text-[9px] font-black uppercase text-red-500 mt-1">
-                                                                    Over Budget
-                                                                </p>
-                                                            )}
-                                                        </div>
-                                                    </div>
-
-                                                    <div className="w-full h-2 bg-black/10 rounded-full overflow-hidden mb-3">
-                                                        <div
-                                                            className="h-full bg-gradient-to-r from-cyan-500 to-blue-600 transition-all duration-1000"
-                                                            style={{ width: `${(team.players_count / 8) * 100}%` }}
-                                                        ></div>
-                                                    </div>
-
-                                                    <div className="flex justify-between text-[9px] font-bold uppercase opacity-30">
-                                                        <span>{team.players_count}/8</span>
-                                                        <span>Spent: {team.spent}</span>
-                                                    </div>
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
-                                </div>
-                                {/* RECENT SALES */}
-                                <div className={`${glass} rounded-[2.5rem] p-6 flex flex-col overflow-hidden`}>
-                                    <div className="flex items-center justify-between mb-4">
-                                        <h3 className="font-hero text-3xl uppercase tracking-wide">
-                                            Recent Sales
-                                        </h3>
-                                        <span className="text-[10px] font-black uppercase tracking-[0.35em] text-cyan-500/70">
-                                            FEED
-                                        </span>
-                                    </div>
-
-                                    <div className="space-y-2 max-h-[320px] overflow-y-auto pr-1">
-                                        {latestFeed.length > 0 ? latestFeed.map((h, i) => (
-                                            <div key={i} className={`flex items-center justify-between gap-4 p-3 rounded-2xl border transition ${isDark ? "bg-white/[0.02] border-white/5 hover:border-cyan-500/25" : "bg-white border-slate-200 hover:border-blue-400"
-                                                }`}>
-                                                <div className="flex items-center gap-3">
-                                                    <img
-                                                        src={`https://api.dicebear.com/9.x/initials/svg?seed=${encodeURIComponent(h.player_name || "P")}`}
-                                                        className={`w-10 h-10 rounded-xl border ${isDark ? "bg-black/50 border-white/10" : "bg-slate-100 border-slate-200"}`}
-                                                    />
-                                                    <div>
-                                                        <p className="font-black uppercase text-sm leading-tight">
-                                                            {h.player_name}
-                                                        </p>
-                                                        <p className="text-[10px] uppercase font-black tracking-widest text-cyan-500/70 mt-0.5">
-                                                            → {h.team_name}
-                                                        </p>
-                                                    </div>
-                                                </div>
-
-                                                <div className="text-right">
-                                                    <p className="font-hero text-3xl text-emerald-500 leading-none">
-                                                        ${h.amount}
-                                                    </p>
-                                                    <p className="text-[9px] uppercase font-black opacity-25 mt-1">
-                                                        SOLD
-                                                    </p>
-                                                </div>
-                                            </div>
-                                        )) : (
-                                            <div className="text-center opacity-20 uppercase font-black tracking-[0.4em] py-10">
-                                                Waiting for First Sale...
-                                            </div>
-                                        )}
-                                    </div>
-                                    <span className="text-[10px] font-black tracking-[0.25em] uppercase text-yellow-400">
-                                        MODE: {categoryFilter}
-                                    </span>
-                                </div>
-
-                            </section>
-                        </main>
-                        {/* ===== CHEAT MODAL ===== */}
-                        {showCheat && (
-                            <div className="fixed inset-0 z-[260] flex items-center justify-center bg-black/90 backdrop-blur-xl p-4">
-                                <div className={`${glass} w-full max-w-2xl rounded-[2.5rem] max-h-[85vh] flex flex-col shadow-2xl overflow-hidden animate-slam`}>
-
-                                    <div className="p-7 border-b border-white/10 flex items-center justify-between">
-                                        <div>
-                                            <h2 className="font-hero text-4xl uppercase text-fuchsia-400 tracking-wide">
-                                                Draft Manipulator
-                                            </h2>
-                                            <p className="text-[10px] font-black uppercase tracking-[0.35em] opacity-50 mt-1">
-                                                Priority Unsold Players
-                                            </p>
-                                        </div>
-
-                                        <button
-                                            onClick={() => setShowCheat(false)}
-                                            className="p-3 rounded-2xl border border-white/10 hover:bg-white/5 transition"
-                                        >
-                                            <X c="w-5 h-5 opacity-70" />
-                                        </button>
-                                    </div>
-
-                                    <div className="p-6 border-b border-white/10">
-                                        <input
-                                            type="text"
-                                            placeholder="Search player..."
-                                            value={search}
-                                            onChange={(e) => setSearch(e.target.value)}
-                                            className={`w-full rounded-2xl px-6 py-4 text-sm font-black outline-none ${isDark
-                                                ? "bg-black/40 border border-white/10 text-white focus:border-fuchsia-500"
-                                                : "bg-white border border-slate-200 text-slate-900 focus:border-fuchsia-500"
-                                                }`}
-                                        />
-                                    </div>
-
-                                    <div className="flex-1 overflow-y-auto p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        {(data.all_unsold_players || [])
-                                            .filter(p => p.name.toLowerCase().includes(search.toLowerCase()))
-                                            .map(p => (
-                                                <div
-                                                    key={p.id}
-                                                    className={`flex items-center justify-between gap-4 p-4 rounded-[1.8rem] border transition ${p.priority_score > 0
-                                                        ? "border-fuchsia-500 bg-fuchsia-500/10 shadow-lg"
-                                                        : isDark
-                                                            ? "border-white/5 bg-white/[0.02]"
-                                                            : "border-slate-200 bg-slate-50"
-                                                        }`}
-                                                >
-                                                    <div>
-                                                        <p className={`font-black uppercase text-sm ${isDark ? "text-white" : "text-slate-900"}`}>
-                                                            {p.name}
-                                                        </p>
-                                                        <p className="text-[10px] uppercase font-black tracking-widest opacity-40 mt-1">
-                                                            {p.category || "Player"}
-                                                        </p>
-                                                    </div>
-
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={p.priority_score > 0}
-                                                        onChange={() => togglePriority(p.id)}
-                                                        className="w-6 h-6 accent-fuchsia-500 cursor-pointer"
-                                                    />
-                                                </div>
-                                            ))}
-                                    </div>
-
-                                    <div className="p-6 border-t border-white/10 text-center">
-                                        <button
-                                            onClick={() => setShowCheat(false)}
-                                            className="bg-white text-black px-14 py-3 rounded-full font-black text-xs uppercase tracking-[0.35em] shadow-xl hover:scale-105 transition"
-                                        >
-                                            DONE
-                                        </button>
-                                    </div>
-
-                                </div>
-                            </div>
-                        )}
-
-                        {showRemainingModal && (
-                            <div className="fixed inset-0 z-[260] flex items-center justify-center bg-black/90 backdrop-blur-xl p-4">
-                                <div className={`${glass} w-full max-w-2xl rounded-[2.5rem] max-h-[85vh] flex flex-col shadow-2xl overflow-hidden animate-slam`}>
-                                    <div className="p-7 border-b border-white/10 flex items-center justify-between">
-                                        <div>
-                                            <h2 className="font-hero text-4xl uppercase text-cyan-400 tracking-wide">
-                                                Remaining Players
-                                            </h2>
-                                        </div>
-                                        <button onClick={() => setShowRemainingModal(false)} className="p-3 rounded-2xl border border-white/10 hover:bg-white/5 transition">
-                                            <X c="w-5 h-5 opacity-70" />
-                                        </button>
-                                    </div>
-                                    <div className="p-6 border-b border-white/10">
-                                        <input
-                                            type="text"
-                                            placeholder="Search player..."
-                                            value={search}
-                                            onChange={(e) => setSearch(e.target.value)}
-                                            className={`w-full rounded-2xl px-6 py-4 text-sm font-black outline-none ${isDark ? "bg-black/40 border border-white/10 text-white focus:border-cyan-500" : "bg-white border border-slate-200 text-slate-900 focus:border-cyan-500"}`}
-                                        />
-                                    </div>
-                                    <div className="flex-1 overflow-y-auto p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        {(data.all_unsold_players || [])
-                                            .filter(p => p.name.toLowerCase().includes(search.toLowerCase()))
-                                            .map(p => (
-                                                <div key={p.id} className={`flex items-center justify-between gap-4 p-4 rounded-[1.8rem] border transition ${isDark ? "border-white/5 bg-white/[0.02]" : "border-slate-200 bg-slate-50"}`}>
-                                                    <div>
-                                                        <p className={`font-black uppercase text-sm ${isDark ? "text-white" : "text-slate-900"}`}>{p.name}</p>
-                                                        <p className="text-[10px] uppercase font-black tracking-widest opacity-40 mt-1">{p.category || "Player"}</p>
-                                                    </div>
-                                                </div>
-                                            ))}
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-
-                        {showUnsoldModal && (
-                            <div className="fixed inset-0 z-[260] flex items-center justify-center bg-black/90 backdrop-blur-xl p-4">
-                                <div className={`${glass} w-full max-w-2xl rounded-[2.5rem] max-h-[85vh] flex flex-col shadow-2xl overflow-hidden animate-slam`}>
-                                    <div className="p-7 border-b border-white/10 flex items-center justify-between">
-                                        <div>
-                                            <h2 className="font-hero text-4xl uppercase text-red-400 tracking-wide">
-                                                Unsold Players
-                                            </h2>
-                                        </div>
-                                        <button onClick={() => setShowUnsoldModal(false)} className="p-3 rounded-2xl border border-white/10 hover:bg-white/5 transition">
-                                            <X c="w-5 h-5 opacity-70" />
-                                        </button>
-                                    </div>
-                                    <div className="p-6 border-b border-white/10">
-                                        <input
-                                            type="text"
-                                            placeholder="Search player..."
-                                            value={search}
-                                            onChange={(e) => setSearch(e.target.value)}
-                                            className={`w-full rounded-2xl px-6 py-4 text-sm font-black outline-none ${isDark ? "bg-black/40 border border-white/10 text-white focus:border-red-500" : "bg-white border border-slate-200 text-slate-900 focus:border-red-500"}`}
-                                        />
-                                    </div>
-                                    <div className="flex-1 overflow-y-auto p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        {(data.true_unsold_players || [])
-                                            .filter(p => p.name.toLowerCase().includes(search.toLowerCase()))
-                                            .map(p => (
-                                                <div key={p.id} className={`flex items-center justify-between gap-4 p-4 rounded-[1.8rem] border transition ${isDark ? "border-white/5 bg-white/[0.02]" : "border-slate-200 bg-slate-50"}`}>
-                                                    <div>
-                                                        <p className={`font-black uppercase text-sm ${isDark ? "text-white" : "text-slate-900"}`}>{p.name}</p>
-                                                        <p className="text-[10px] uppercase font-black tracking-widest opacity-40 mt-1">{p.category || "Player"}</p>
-                                                    </div>
-                                                </div>
-                                            ))}
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-
-                        {/* ===== TEAM MODAL ===== */}
-                        {selectedTeam && (
-                            <div className="fixed inset-0 z-[150] flex items-center justify-end bg-black/60 backdrop-blur-sm" onClick={() => setSelectedTeam(null)}>
-                                <div className={`w-full md:w-[560px] h-full flex flex-col shadow-2xl border-l ${isDark ? "bg-[#0a0f1e] border-white/10" : "bg-white border-slate-200"
-                                    }`} onClick={e => e.stopPropagation()}>
-
-                                    {/* header */}
-                                    <div className={`p-10 border-b ${isDark ? "border-white/5" : "border-slate-200"}`}>
-                                        <div className="flex items-start justify-between gap-4">
-                                            <div>
-                                                <h2 className={`font-hero text-6xl uppercase tracking-tighter mb-2 ${isDark ? "text-white" : "text-slate-900"}`}>
-                                                    {selectedTeam.name}
-                                                </h2>
-                                                <p className="text-[10px] font-bold opacity-40 uppercase tracking-[0.2em]">
-                                                    Squad & Leadership
-                                                </p>
-                                            </div>
-
-                                            <button
-                                                onClick={() => setSelectedTeam(null)}
-                                                className={`p-3 rounded-2xl border transition hover:scale-105 ${isDark ? "border-white/10 bg-white/5" : "border-slate-200 bg-slate-50"
-                                                    }`}
-                                            >
-                                                <X c="w-5 h-5 opacity-70" />
-                                            </button>
-                                        </div>
-
-                                        {/* captain + vc show for viewer + admin */}
-                                        <div className="grid grid-cols-2 gap-4 mt-6">
-                                            <div className={`p-4 rounded-2xl border ${isDark ? "bg-white/[0.03] border-white/5" : "bg-slate-50 border-slate-200"
-                                                }`}>
-                                                <p className="text-[9px] font-black uppercase tracking-[0.3em] text-cyan-500 mb-1">
-                                                    Captain
-                                                </p>
-                                                <p className={`text-sm font-black uppercase tracking-widest ${isDark ? "text-white" : "text-slate-900"}`}>
-                                                    {selectedTeam.captain_name || "Not Assigned"}
-                                                </p>
-                                            </div>
-
-                                            <div className={`p-4 rounded-2xl border ${isDark ? "bg-white/[0.03] border-white/5" : "bg-slate-50 border-slate-200"
-                                                }`}>
-                                                <p className="text-[9px] font-black uppercase tracking-[0.3em] text-cyan-500 mb-1">
-                                                    Vice Captain
-                                                </p>
-                                                <p className={`text-sm font-black uppercase tracking-widest ${isDark ? "text-white" : "text-slate-900"}`}>
-                                                    {selectedTeam.vice_captain_name || "Not Assigned"}
-                                                </p>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* edit roles (admin only) */}
-                                    {isAdmin && (
-                                        <div className={`p-7 border-b ${isDark ? "border-white/5 bg-cyan-500/5" : "border-slate-200 bg-blue-50"}`}>
-                                            <div className="flex flex-col gap-4">
-                                                <input
-                                                    type="text"
-                                                    value={teamNameDraft}
-                                                    onChange={(e) => setTeamNameDraft(e.target.value)}
-                                                    placeholder="Team Name"
-                                                    className={`w-full rounded-2xl px-5 py-3 text-sm font-black outline-none ${isDark ? "bg-black/60 border border-white/10 text-white focus:border-cyan-500" : "bg-white border border-slate-200 focus:border-blue-500"}`}
-                                                />
-                                                <div className="grid grid-cols-2 gap-4">
-                                                    <input
-                                                        type="text"
-                                                        value={captainDraft}
-                                                        onChange={(e) => setCaptainDraft(e.target.value)}
-                                                        placeholder="Captain Name"
-                                                        className={`w-full rounded-2xl px-5 py-3 text-sm font-black outline-none ${isDark ? "bg-black/60 border border-white/10 text-white focus:border-cyan-500" : "bg-white border border-slate-200 focus:border-blue-500"}`}
-                                                    />
-                                                    <input
-                                                        type="text"
-                                                        value={viceDraft}
-                                                        onChange={(e) => setViceDraft(e.target.value)}
-                                                        placeholder="Vice Captain Name"
-                                                        className={`w-full rounded-2xl px-5 py-3 text-sm font-black outline-none ${isDark ? "bg-black/60 border border-white/10 text-white focus:border-cyan-500" : "bg-white border border-slate-200 focus:border-blue-500"}`}
-                                                    />
-                                                </div>
-                                            </div>
-
-                                            <button
-                                                onClick={saveRoles}
-                                                className="w-full mt-4 py-3 rounded-2xl bg-white text-black font-black text-xs uppercase tracking-[0.35em] hover:scale-[1.01] transition active:scale-95"
-                                            >
-                                                SAVE ROLES
-                                            </button>
-                                        </div>
-                                    )}
-
-                                    {/* players list */}
-                                    <div className="flex-1 overflow-y-auto p-8 space-y-4">
-                                        {sortedHistory.filter(h =>
-                                            (h.team_id && h.team_id === selectedTeam.id) ||
-                                            (h.team_name && selectedTeam.name && h.team_name.trim().toLowerCase() === selectedTeam.name.trim().toLowerCase())
-                                        ).map((p, i) => (
-                                            <div key={i} className={`flex items-center gap-5 p-5 rounded-[1.8rem] border transition-all ${isDark ? "bg-white/[0.03] border-white/5 hover:border-cyan-500/30" : "bg-slate-50 border-slate-200 hover:border-blue-400"
-                                                }`}>
-                                                <div className="w-12 h-12 rounded-2xl bg-cyan-500 text-black flex items-center justify-center font-black text-xl shadow-lg">
-                                                    {i + 1}
-                                                </div>
-                                                <div className="flex-1">
-                                                    <h4 className={`font-black text-sm uppercase tracking-widest ${isDark ? "text-white" : "text-slate-900"}`}>
-                                                        {p.player_name}
-                                                    </h4>
-                                                    <p className="text-[10px] opacity-40 uppercase mt-1">Auction Purchase</p>
-                                                </div>
-                                                <div className="font-hero text-2xl text-emerald-500 font-bold">
-                                                    ${p.amount}
-                                                </div>
-                                                {isAdmin && (
-                                                    <div className="flex flex-col gap-1 ml-2">
-                                                        <select
-                                                            className={`text-xs p-1 rounded border outline-none ${isDark ? "bg-black/60 border-white/10 text-white" : "bg-white border-slate-200 text-slate-900"}`}
-                                                            value={transferPlayer?.player_name === p.player_name ? transferTeamId : ""}
-                                                            onChange={(e) => {
-                                                                setTransferPlayer(p);
-                                                                setTransferTeamId(e.target.value);
-                                                            }}
-                                                        >
-                                                            <option value="">Transfer to...</option>
-                                                            {teams.filter(t => t.id !== selectedTeam.id).map(t => (
-                                                                <option key={t.id} value={t.id}>{t.name}</option>
-                                                            ))}
-                                                        </select>
-                                                        {transferPlayer?.player_name === p.player_name && transferTeamId && (
-                                                            <button
-                                                                onClick={handleTransfer}
-                                                                className="text-[10px] bg-emerald-500 text-black px-2 py-1 rounded font-bold uppercase"
-                                                            >
-                                                                Confirm Transfer
-                                                            </button>
-                                                        )}
-                                                    </div>
-                                                )}
-                                            </div>
-                                        ))}
-
-                                        {sortedHistory.filter(h =>
-                                            (h.team_id && h.team_id === selectedTeam.id) ||
-                                            (h.team_name && selectedTeam.name && h.team_name.trim().toLowerCase() === selectedTeam.name.trim().toLowerCase())
-                                        ).length === 0 && (
-                                                <div className="text-center py-20 opacity-10 uppercase font-black text-2xl tracking-[0.5em]">
-                                                    No Players
-                                                </div>
-                                            )}
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-
-                        {/* ===== SHARE MODAL ===== */}
-                        {showShare && (
-                            <div className="fixed inset-0 z-[220] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4" onClick={() => setShowShare(false)}>
-                                <div className={`${glass} p-8 rounded-[2.5rem] max-w-sm w-full space-y-6 shadow-2xl animate-slam`} onClick={e => e.stopPropagation()}>
-                                    <div className="text-center">
-                                        <div className="w-16 h-16 rounded-full bg-cyan-500/10 flex items-center justify-center mx-auto mb-4 border border-cyan-500/20">
-                                            <Share2 c="text-cyan-500 w-8 h-8" />
-                                        </div>
-                                        <h3 className="text-3xl font-hero uppercase">Invite Participants</h3>
-                                        <p className="text-xs opacity-60 mt-1">Share links via WhatsApp</p>
-                                    </div>
-
-                                    <div className="space-y-3">
-                                        <button onClick={() => shareLink("captain")} className="w-full py-4 bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-500 hover:to-green-500 text-white rounded-2xl font-black transition shadow-lg">
-                                            🧢 Captain Link
-                                        </button>
-                                        <button onClick={() => shareLink("viewer")} className="w-full py-4 bg-white/5 hover:bg-white/10 border border-white/10 text-white rounded-2xl font-black transition">
-                                            👀 Viewer Link
-                                        </button>
-                                    </div>
-
-                                    <button onClick={() => setShowShare(false)} className="w-full py-3 rounded-2xl bg-white text-black font-black text-xs uppercase tracking-[0.35em]">
-                                        CLOSE
-                                    </button>
-                                </div>
-                            </div>
-                        )}
-
-                        {/* ===== PIN MODAL ===== */}
-                        {showPin && (
-                            <div className="fixed inset-0 z-[300] bg-black/95 flex items-center justify-center p-4">
-                                <div className={`${glass} text-center p-12 rounded-[3rem] border border-white/10 w-full max-w-md shadow-2xl`}>
-                                    <Lock c="w-16 h-16 text-cyan-500 mx-auto mb-6" />
-                                    <h3 className="font-hero text-4xl my-6 uppercase">Verify Admin</h3>
-
-                                    <input
-                                        type="password"
-                                        maxLength="6"
-                                        value={pinInput}
-                                        onChange={e => setPinInput(e.target.value)}
-                                        className="w-full bg-black/50 border border-white/10 rounded-2xl py-5 text-center text-4xl tracking-[0.5em] mb-8 outline-none focus:border-cyan-500 text-cyan-500 font-tech"
-                                        autoFocus
-                                    />
-
-                                    <button onClick={verifyAdmin} className="w-full py-4 btn-main rounded-2xl font-black uppercase text-xs tracking-widest shadow-lg shadow-cyan-500/20 text-white">
-                                        AUTHORIZE TERMINAL
-                                    </button>
-
-                                    <button onClick={() => setShowPin(false)} className="mt-6 text-[10px] font-bold opacity-30 uppercase hover:opacity-100 transition-all">
-                                        Cancel
-                                    </button>
-                                </div>
-                            </div>
-                        )}
-
-                    </div>
+<body>
+<div id="root"></div>
+{% verbatim %}
+<script type="text/babel">
+const { useEffect, useMemo, useRef, useState } = React;
+
+const Ic = ({ d, s = 18 }) => (
+  <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d={d} /></svg>
+);
+const P = {
+  sun: "M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8zM12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M6.3 17.7l-1.4 1.4M19.1 4.9l-1.4 1.4",
+  moon: "M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z",
+  share: "M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7M16 6l-4-4-4 4M12 2v14",
+  dl: "M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3",
+  x: "M18 6 6 18M6 6l12 12",
+};
+
+function getCookie(name) {
+  const m = document.cookie.split(";").map(c => c.trim()).find(c => c.startsWith(name + "="));
+  return m ? decodeURIComponent(m.slice(name.length + 1)) : null;
+}
+
+function ListModal({ title, players, onClose, onToggle, isDark }) {
+  const [q, setQ] = useState("");
+  const list = (players || []).filter(p => p.name.toLowerCase().includes(q.toLowerCase()));
+  return (
+    <div className="ov" onClick={onClose}>
+      <div className="modal" onClick={e => e.stopPropagation()}>
+        <div className="mh">
+          <div><h2 className="disp">{title}</h2><span className="mute" style={{fontSize:13}}>{list.length} players</span></div>
+          <button className="btn icon" onClick={onClose} aria-label="Close"><Ic d={P.x} /></button>
+        </div>
+        <div style={{padding:"12px 20px 0"}}>
+          <input className="input" style={{width:"100%"}} placeholder="Search by name" value={q} onChange={e => setQ(e.target.value)} />
+        </div>
+        <div className="mb">
+          {list.length === 0 && <div className="empty">No players match.</div>}
+          {list.map(p => (
+            <div key={p.id} className={`li ${onToggle && p.priority_score > 0 ? "hot" : ""}`}>
+              <div><b>{p.name}</b><small>{p.category || "Player"}</small></div>
+              {onToggle && <input type="checkbox" checked={p.priority_score > 0} onChange={() => onToggle(p.id)} aria-label={`Prioritise ${p.name}`} />}
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function App() {
+  const [data, setData] = useState(null);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [isViewerMode, setIsViewerMode] = useState(false);
+  const [theme, setTheme] = useState("dark");
+  const [showPin, setShowPin] = useState(false);
+  const [pinInput, setPinInput] = useState("");
+  const [showShare, setShowShare] = useState(false);
+  const [selectedTeam, setSelectedTeam] = useState(null);
+  const [customBid, setCustomBid] = useState("");
+  const [modal, setModal] = useState(null); // 'cheat' | 'remaining' | 'unsold'
+  const [teamNameDraft, setTeamNameDraft] = useState("");
+  const [captainDraft, setCaptainDraft] = useState("");
+  const [viceDraft, setViceDraft] = useState("");
+  const [transferPlayer, setTransferPlayer] = useState(null);
+  const [transferTeamId, setTransferTeamId] = useState("");
+  const [animStage, setAnimStage] = useState("idle");
+  const [scrambleText, setScrambleText] = useState("Searching");
+  const [tempWinner, setTempWinner] = useState(null);
+  const [categoryFilter, setCategoryFilter] = useState("ALL");
+  const prevPlayerId = useRef(null);
+
+  const headersJSON = useMemo(() => ({ "Content-Type": "application/json", "X-CSRFToken": getCookie("csrftoken") }), []);
+  const isDark = theme === "dark";
+
+  useEffect(() => { if (new URLSearchParams(location.search).get("role") === "viewer") { setIsViewerMode(true); setIsAdmin(false); } }, []);
+  useEffect(() => { const s = localStorage.getItem("auction_theme"); if (s === "light" || s === "dark") setTheme(s); }, []);
+  useEffect(() => { localStorage.setItem("auction_theme", theme); }, [theme]);
+  useEffect(() => {
+    if (animStage !== "spinning") return;
+    const w = ["Searching", "Matching", "Targeting", "Scanning", "Locking in"];
+    const t = setInterval(() => setScrambleText(w[Math.floor(Math.random() * w.length)]), 120);
+    return () => clearInterval(t);
+  }, [animStage]);
+
+  const getImg = (p) => !p ? "" : (p.image && p.image.length > 5
+    ? `/proxy-image/?url=${encodeURIComponent(p.image)}`
+    : `https://api.dicebear.com/9.x/initials/svg?seed=${encodeURIComponent(p.name || "Player")}`);
+
+  const fetchData = async () => {
+    try {
+      const d = await (await fetch("/api/state/")).json();
+      if (d.error) return;
+      setData(d);
+      if (d.current_player && d.current_player.id !== prevPlayerId.current) {
+        if (prevPlayerId.current !== null) { setTempWinner(d.current_player); setAnimStage("revealed"); }
+        prevPlayerId.current = d.current_player.id;
+      } else if (!d.current_player) {
+        prevPlayerId.current = null;
+        if (animStage !== "spinning") setAnimStage("idle");
+      }
+    } catch (e) { console.error("State Sync Error", e); }
+  };
+  useEffect(() => { fetchData(); const t = setInterval(fetchData, 1000); return () => clearInterval(t); }, [animStage, isAdmin, isViewerMode]);
+
+  const doAction = async (action, payload = {}) => {
+    try {
+      if (!isAdmin) return;
+      if (action === "SPIN") {
+        setAnimStage("spinning");
+        await fetch("/api/action/", { method: "POST", headers: headersJSON, body: JSON.stringify({ action, category: categoryFilter }) });
+        setTimeout(async () => {
+          const nd = await (await fetch("/api/state/")).json();
+          setData(nd); setTempWinner(nd.current_player); setAnimStage("revealed");
+          if (nd.current_player) prevPlayerId.current = nd.current_player.id;
+        }, 1200);
+        return;
+      }
+      await fetch("/api/action/", { method: "POST", headers: headersJSON, body: JSON.stringify({ action, ...payload }) });
+      fetchData();
+    } catch (e) { console.error("Action Error", e); }
+  };
+
+  const togglePriority = async (id) => {
+    try {
+      setData({ ...data, all_unsold_players: (data.all_unsold_players || []).map(p => p.id === id ? { ...p, priority_score: p.priority_score > 0 ? 0 : 1 } : p) });
+      await fetch("/api/toggle-priority/", { method: "POST", headers: headersJSON, body: JSON.stringify({ player_id: id }) });
+    } catch (e) { console.error("Priority Toggle Error", e); }
+  };
+
+  const verifyAdmin = async () => {
+    try {
+      const json = await (await fetch("/api/verify-pin/", { method: "POST", headers: headersJSON, body: JSON.stringify({ pin: pinInput }) })).json();
+      if (json.success) { setIsAdmin(true); setShowPin(false); setPinInput(""); }
+      else { alert("Incorrect PIN. Try again."); setPinInput(""); }
+    } catch (e) { alert("Could not reach the server."); }
+  };
+
+  const shareLink = (type) => {
+    const url = `${location.origin}${location.pathname}${type === "viewer" ? "?role=viewer" : ""}`;
+    const text = type === "captain" ? `🧢 Join the auction (captain): ${url}` : `👀 Watch the live auction: ${url}`;
+    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
+  };
+
+  const submitCustomBid = () => {
+    const n = parseInt(customBid);
+    if (isNaN(n)) return;
+    doAction("BID", { amount: n }); setCustomBid("");
+  };
+
+  useEffect(() => {
+    if (!selectedTeam) return;
+    setTeamNameDraft(selectedTeam.name || ""); setCaptainDraft(selectedTeam.captain_name || ""); setViceDraft(selectedTeam.vice_captain_name || "");
+  }, [selectedTeam]);
+
+  const saveRoles = async () => {
+    try {
+      if (!selectedTeam) return;
+      await fetch("/api/assign-roles/", { method: "POST", headers: headersJSON, body: JSON.stringify({ team_id: selectedTeam.id, team_name: teamNameDraft, captain: captainDraft, vice_captain: viceDraft }) });
+      fetchData(); setSelectedTeam(null);
+    } catch (e) { console.error("Role Save Error", e); }
+  };
+
+  const handleTransfer = async () => {
+    if (!transferPlayer || !transferTeamId) return;
+    await doAction("TRANSFER", { player_name: transferPlayer.player_name, old_team: selectedTeam.name, new_team_id: transferTeamId });
+    setTransferPlayer(null); setTransferTeamId("");
+  };
+
+  if (!data) return <div data-theme={theme} className="app" style={{display:"grid",placeItems:"center"}}><div className="disp" style={{fontSize:48}}>Loading auction…</div></div>;
+
+  const { current_player, current_bid, teams = [], history = [], stats = {}, auction_name, categories } = data;
+  const categoryList = ["ALL", ...(categories || [])];
+  const sortedHistory = [...history].reverse();
+  const feed = sortedHistory.slice(0, 14);
+  const ticker = sortedHistory.slice(0, 30);
+  const teamSales = selectedTeam ? sortedHistory.filter(h =>
+    (h.team_id && h.team_id === selectedTeam.id) ||
+    (h.team_name && selectedTeam.name && h.team_name.trim().toLowerCase() === selectedTeam.name.trim().toLowerCase())) : [];
+  const closeReveal = () => { setAnimStage("idle"); setTempWinner(null); };
+
+  return (
+    <div data-theme={theme} className="app">
+
+      {/* reveal */}
+      {(animStage === "spinning" || animStage === "revealed") && (
+        <div className="ov" style={{zIndex:200}} onClick={isAdmin ? closeReveal : undefined}>
+          {animStage === "spinning" ? (
+            <div style={{textAlign:"center"}}>
+              <div className="spin" />
+              <div className="disp" style={{fontSize:56,color:"#fff",textTransform:"uppercase"}}>{scrambleText}…</div>
+            </div>
+          ) : tempWinner && (
+            <div className="reveal">
+              <img src={getImg(tempWinner)} alt="" />
+              <h1 className="disp">{tempWinner.name}</h1>
+              <div className="tags">
+                {[tempWinner.position, tempWinner.category, tempWinner.department, tempWinner.year].filter(Boolean).map((t, i) => (
+                  <span key={i} className="tag" style={{fontSize:15,padding:"5px 14px",background:i === 1 ? "var(--accent)" : "var(--panel2)",color:i === 1 ? "var(--ink)" : "var(--text)"}}>{t}</span>
+                ))}
+              </div>
+              {isAdmin
+                ? <button className="btn pri" style={{fontSize:18,padding:"14px 40px"}} onClick={e => { e.stopPropagation(); closeReveal(); }}>Open bidding</button>
+                : <p className="mute">Waiting for the auctioneer…</p>}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* header */}
+      <header className="top">
+        <div className="wrap">
+          <div className="top-row">
+            <div className="brand">
+              <h1 className="disp">{auction_name}</h1>
+              <span className="live"><i />Live</span>
+            </div>
+            <div className="chips">
+              <button className="chip" onClick={() => setModal("remaining")}>Remaining<b>{stats.remaining || 0}</b></button>
+              <button className="chip" onClick={() => setModal("unsold")}>Unsold<b>{stats.unsold || 0}</b></button>
+              <span className="chip">{isViewerMode ? "Viewer" : isAdmin ? "Admin" : "Console"}</span>
+            </div>
+            <div style={{display:"flex",gap:8,alignItems:"center"}}>
+              {isAdmin && <button className="btn" onClick={() => setModal("cheat")}>Priority players</button>}
+              <button className="btn icon" onClick={() => setTheme(isDark ? "light" : "dark")} aria-label="Toggle theme"><Ic d={isDark ? P.sun : P.moon} /></button>
+              {isAdmin && <>
+                <button className="btn icon" onClick={() => setShowShare(true)} aria-label="Share links"><Ic d={P.share} /></button>
+                <a className="btn icon" href="/export/" aria-label="Export CSV"><Ic d={P.dl} /></a>
+              </>}
+              {!isViewerMode && (
+                <button className={`btn ${isAdmin ? "bad" : "pri"}`} onClick={() => isAdmin ? setIsAdmin(false) : setShowPin(true)}>
+                  {isAdmin ? "Exit admin" : "Admin login"}
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+        <div className="ticker"><div>
+          {ticker.length ? ticker.map((h, i) => (
+            <span key={i}>{h.player_name} sold to <em>{h.team_name}</em> for ${h.amount}</span>
+          )) : <span>Waiting for the first sale</span>}
+        </div></div>
+      </header>
+
+      <main className="wrap main">
+        {/* on the block */}
+        <section className="stage-col">
+          <div className="card stage">
+            {!current_player ? (
+              <div className="waiting">
+                {isAdmin ? (
+                  <>
+                    <p className="mute" style={{marginBottom:18}}>No player on the block.{categoryFilter !== "ALL" ? ` Drawing from ${categoryFilter}.` : ""}</p>
+                    <button className="btn pri disp" style={{fontSize:30,padding:"12px 44px"}} onClick={() => doAction("SPIN")}>Draw next player</button>
+                  </>
+                ) : (
+                  <>
+                    <div className="disp" style={{fontSize:40}}>Next player soon</div>
+                    <p className="mute" style={{marginTop:6}}>The auctioneer is picking the next name.</p>
+                  </>
+                )}
+              </div>
+            ) : (
+              <>
+                <img className="avatar" src={getImg(current_player)} alt="" />
+                <h2 className="pname disp">{current_player.name}</h2>
+                <div className="tags">
+                  {[current_player.position, current_player.category, current_player.department, current_player.year].filter(Boolean).map((t, i) => <span key={i} className="tag">{t}</span>)}
                 </div>
-            );
-        }
+                <div className="score">
+                  <div className="lbl">Current bid<div className="mute" style={{fontWeight:500,marginTop:2}}>Base {current_player.base_price}</div></div>
+                  <div className="num disp">{current_bid}</div>
+                </div>
+                {isAdmin ? (
+                  <>
+                    <div className="bids">
+                      {[1, 5, 10, 50].map(a => <button key={a} className="btn" onClick={() => doAction("BID", { amount: current_bid + a })}>+{a}</button>)}
+                    </div>
+                    <div className="row">
+                      <input className="input" type="number" placeholder="Set exact bid" value={customBid} onChange={e => setCustomBid(e.target.value)} onKeyDown={e => e.key === "Enter" && submitCustomBid()} />
+                      <button className="btn pri" onClick={submitCustomBid}>Set bid</button>
+                    </div>
+                    <button className="btn bad" style={{width:"100%"}} onClick={() => doAction("UNSOLD")}>Pass — mark unsold</button>
+                    <p className="mute" style={{fontSize:12,marginTop:10}}>To sell, hover a team and press Sell.</p>
+                  </>
+                ) : (
+                  <div style={{padding:"6px 0"}}><span style={{fontWeight:700,fontSize:14}}>Bidding is live</span><div className="dots"><i /><i /><i /></div></div>
+                )}
+              </>
+            )}
+          </div>
 
-        const root = ReactDOM.createRoot(document.getElementById("root"));
-        root.render(<App />);
-    </script>
-    {% endverbatim %}
+          {isAdmin && (
+            <div className="card">
+              <div className="filters">
+                {categoryList.map(c => <button key={c} className={categoryFilter === c ? "on" : ""} onClick={() => setCategoryFilter(c)}>{c}</button>)}
+              </div>
+            </div>
+          )}
+          {isAdmin && <button className="btn go" onClick={() => doAction("RESET_UNSOLD")}>Put unsold players back in the pool</button>}
+        </section>
+
+        {/* teams + sales */}
+        <section style={{display:"flex",flexDirection:"column",gap:20}}>
+          <div className="card" style={{padding:20}}>
+            <div className="sec-h"><h2 className="disp">Teams</h2><span className="mute" style={{fontSize:13}}>Select a team to see its squad</span></div>
+            <div className="teams">
+              {teams.map((team, idx) => {
+                const isFull = team.players_count >= 8;
+                return (
+                  <div key={team.id} className="team" style={{"--h": (idx * 30) % 360}} onClick={() => setSelectedTeam(team)}>
+                    {isAdmin && current_player && (
+                      <div className="sell" onClick={e => e.stopPropagation()}>
+                        {isFull
+                          ? <span className="over" style={{fontWeight:700}}>Squad full</span>
+                          : <button className="btn go" style={{fontSize:18,padding:"12px 36px"}} onClick={() => doAction("SELL", { team_id: team.id })}>Sell to {team.name}</button>}
+                      </div>
+                    )}
+                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:8}}>
+                      <div style={{minWidth:0}}>
+                        <h3 className="disp">{team.name}</h3>
+                        <div className="meta mute">C: {team.captain_name || "—"}</div>
+                        <div className="meta mute">VC: {team.vice_captain_name || "—"}</div>
+                      </div>
+                      <div style={{textAlign:"right"}}>
+                        <div className={`budget disp ${team.budget < 0 ? "over" : ""}`}>{team.budget}</div>
+                        <div className="meta mute">{team.budget < 0 ? "Over budget" : "points left"}</div>
+                      </div>
+                    </div>
+                    <div className="bar"><i style={{width: `${Math.min(100, (team.players_count / 8) * 100)}%`}} /></div>
+                    <div className="foot"><span>{team.players_count}/8 players</span><span>Spent {team.spent}</span></div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="card" style={{padding:20}}>
+            <div className="sec-h"><h2 className="disp">Recent sales</h2><span className="mute" style={{fontSize:13}}>Drawing from: {categoryFilter}</span></div>
+            <div style={{maxHeight:340,overflowY:"auto"}}>
+              {feed.length ? feed.map((h, i) => (
+                <div key={i} className="sale">
+                  <img alt="" src={`https://api.dicebear.com/9.x/initials/svg?seed=${encodeURIComponent(h.player_name || "P")}`} />
+                  <div><div className="n">{h.player_name}</div><div className="t mute">to {h.team_name}</div></div>
+                  <div className="a disp">${h.amount}</div>
+                </div>
+              )) : <div className="empty">No sales yet. The first one will show up here.</div>}
+            </div>
+          </div>
+        </section>
+      </main>
+
+      {/* list modals */}
+      {modal === "cheat" && <ListModal title="Priority players" players={data.all_unsold_players} onToggle={togglePriority} onClose={() => setModal(null)} />}
+      {modal === "remaining" && <ListModal title="Remaining players" players={data.all_unsold_players} onClose={() => setModal(null)} />}
+      {modal === "unsold" && <ListModal title="Unsold players" players={data.true_unsold_players} onClose={() => setModal(null)} />}
+
+      {/* team drawer */}
+      {selectedTeam && (
+        <div className="drawer" onClick={() => setSelectedTeam(null)}>
+          <div className="dr" onClick={e => e.stopPropagation()}>
+            <div className="dr-h">
+              <div style={{display:"flex",justifyContent:"space-between",gap:12}}>
+                <div><h2 className="disp">{selectedTeam.name}</h2><span className="mute" style={{fontSize:13}}>{teamSales.length} players bought</span></div>
+                <button className="btn icon" onClick={() => setSelectedTeam(null)} aria-label="Close"><Ic d={P.x} /></button>
+              </div>
+              <div className="lead">
+                <div><small>Captain</small><b>{selectedTeam.captain_name || "Not assigned"}</b></div>
+                <div><small>Vice captain</small><b>{selectedTeam.vice_captain_name || "Not assigned"}</b></div>
+              </div>
+            </div>
+            {isAdmin && (
+              <div className="edit">
+                <input className="input" value={teamNameDraft} onChange={e => setTeamNameDraft(e.target.value)} placeholder="Team name" />
+                <div className="two">
+                  <input className="input" value={captainDraft} onChange={e => setCaptainDraft(e.target.value)} placeholder="Captain" />
+                  <input className="input" value={viceDraft} onChange={e => setViceDraft(e.target.value)} placeholder="Vice captain" />
+                </div>
+                <button className="btn pri" onClick={saveRoles}>Save team details</button>
+              </div>
+            )}
+            <div className="dr-l">
+              {teamSales.map((p, i) => (
+                <div key={i} className="pl">
+                  <div className="i disp">{i + 1}</div>
+                  <b style={{fontSize:14}}>{p.player_name}</b>
+                  <div className="p disp">${p.amount}</div>
+                  {isAdmin && (
+                    <div style={{display:"flex",flexDirection:"column",gap:4}}>
+                      <select value={transferPlayer?.player_name === p.player_name ? transferTeamId : ""} onChange={e => { setTransferPlayer(p); setTransferTeamId(e.target.value); }}>
+                        <option value="">Move to…</option>
+                        {teams.filter(t => t.id !== selectedTeam.id).map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                      </select>
+                      {transferPlayer?.player_name === p.player_name && transferTeamId && <button className="btn go sm" onClick={handleTransfer}>Confirm move</button>}
+                    </div>
+                  )}
+                </div>
+              ))}
+              {teamSales.length === 0 && <div className="empty">No players yet.</div>}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* share */}
+      {showShare && (
+        <div className="ov" onClick={() => setShowShare(false)}>
+          <div className="modal" style={{maxWidth:380,padding:24,gap:12}} onClick={e => e.stopPropagation()}>
+            <h2 className="disp" style={{fontSize:34,textTransform:"uppercase"}}>Invite people</h2>
+            <p className="mute" style={{fontSize:14}}>Send a link on WhatsApp.</p>
+            <button className="btn go" onClick={() => shareLink("captain")}>Send captain link</button>
+            <button className="btn" onClick={() => shareLink("viewer")}>Send viewer link</button>
+            <button className="btn" onClick={() => setShowShare(false)}>Close</button>
+          </div>
+        </div>
+      )}
+
+      {/* pin */}
+      {showPin && (
+        <div className="ov" style={{zIndex:300}}>
+          <div className="modal" style={{maxWidth:380,padding:28,gap:14,textAlign:"center"}}>
+            <h2 className="disp" style={{fontSize:36,textTransform:"uppercase"}}>Admin PIN</h2>
+            <input className="input" type="password" maxLength="6" autoFocus value={pinInput} onChange={e => setPinInput(e.target.value)} onKeyDown={e => e.key === "Enter" && verifyAdmin()} style={{textAlign:"center",fontSize:30,letterSpacing:".4em",flex:"none"}} aria-label="Admin PIN" />
+            <button className="btn pri" onClick={verifyAdmin}>Sign in</button>
+            <button className="btn" onClick={() => setShowPin(false)}>Cancel</button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+{% endverbatim %}
 </body>
-
 </html>

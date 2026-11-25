@@ -8,7 +8,7 @@ django.setup()
 
 client = Client()
 
-csv_content = b"name,role,base_price,email\nJohn,Batsman,100,john@test.com"
+csv_content = b"name,role,base_price,email\nJohn,100,john@test.com"
 f = io.BytesIO(csv_content)
 f.name = 'dummy.csv'
 
